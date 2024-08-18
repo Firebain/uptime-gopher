@@ -1,0 +1,22 @@
+# github.com/likexian/gokit v0.25.15
+## explicit; go 1.21
+github.com/likexian/gokit/assert
+github.com/likexian/gokit/xrand
+github.com/likexian/gokit/xslice
+# github.com/likexian/whois v1.15.4
+## explicit; go 1.21
+github.com/likexian/whois
+# github.com/likexian/whois-parser v1.24.19
+## explicit; go 1.21
+github.com/likexian/whois-parser
+# golang.org/x/net v0.28.0
+## explicit; go 1.18
+golang.org/x/net/idna
+golang.org/x/net/internal/socks
+golang.org/x/net/proxy
+# golang.org/x/text v0.17.0
+## explicit; go 1.18
+golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
+golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/norm

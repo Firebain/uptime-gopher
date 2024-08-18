@@ -1,0 +1,13 @@
+domains:
+  - domain: google.com
+    key: google
+    interval: 5s
+    checks:
+      - key: "dns"
+        interval: 5s
+      - key: "ssl"
+        interval: 5s
+      # - key: "http"
+      #   method: "GET"
+      #   success_code: "200"
+      #   retries: 5
