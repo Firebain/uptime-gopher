@@ -26,8 +26,6 @@ type Check struct {
 	ValidateArgs func(map[string]string) error
 }
 
-type PluginInfo struct {
-	Key    string
-	Name   string
-	Checks []Check
-}
+type PluginCtx struct {}
+
+func (p *PluginCtx) AddCheck(check Check) {}

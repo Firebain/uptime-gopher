@@ -10,17 +10,16 @@ import (
 	uptimegopher "uptime-gopher/uptime-gopher"
 )
 
-func Setup() uptimegopher.PluginInfo {
-	return uptimegopher.PluginInfo{
-		Name: "Uptime Gopher Standard Plugin",
-		Checks: []uptimegopher.Check{
-			// checks.HttpCheck(),
-			checks.DomainCheck(),
-			checks.SslCheck(),
-		},
-	}
+var Name = "Uptime Gopher Standard Plugin"
+
+func Setup(ctx *uptimegopher.PluginCtx) error {
+	// ctx.AddCheck(checks.HttpCheck())
+	ctx.AddCheck(checks.DomainCheck())
+	ctx.AddCheck(checks.SslCheck())
+
+	return nil
 }
 
-func Shutdown() {
+func Shutdown(ctx *uptimegopher.PluginCtx) error {
 	fmt.Println("shutdown")
 }

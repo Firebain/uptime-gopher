@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -18,7 +19,87 @@ type Job struct {
 	next        time.Time
 }
 
-// Uptime Gopher
+type PluginCtx struct {
+	id  string
+	app *App
+}
+
+func (p *PluginCtx) AddCheck(check Check) {
+	p.app.AddCheck(p.id, check)
+}
+
+type Plugin interface {
+	Id() string
+	Name() string
+
+	Setup(*PluginCtx) error
+	Shutdown(*PluginCtx) error
+}
+
+type App struct {
+	log *slog.Logger
+
+	plugins []Plugin
+	checks  map[string]map[string]Check
+}
+
+func NewApp(log *slog.Logger) *App {
+	log = log.With("service", "App")
+
+	return &App{
+		log: log,
+
+		plugins: []Plugin{},
+		checks:  map[string]map[string]Check{},
+	}
+}
+
+func (a *App) AddPlugin(plugin Plugin) error {
+	a.log.Info("Loading plugin", "name", plugin.Name())
+
+	ctx := PluginCtx{
+		id:  plugin.Id(),
+		app: a,
+	}
+
+	err := plugin.Setup(&ctx)
+	if err != nil {
+		return err
+	}
+
+	a.plugins = append(a.plugins, plugin)
+
+	a.log.Info("Plugin loaded", "name", plugin.Name())
+
+	return nil
+}
+
+func (a *App) AddCheck(namespace string, check Check) {
+	checkExists, _ := a.GetCheck(check.Key)
+	if checkExists != nil {
+		a.log.Warn("Check already exists. Skippting", "name", check.Key, "namespace", namespace)
+
+		return
+	}
+
+	namespaceVals, ok := a.checks[namespace]
+	if !ok {
+		namespaceVals = map[string]Check{}
+	}
+	namespaceVals[check.Key] = check
+
+	a.checks[namespace] = namespaceVals
+}
+
+func (a *App) GetCheck(key string) (*Check, error) {
+	for _, namespace := range a.checks {
+		if check, ok := namespace[key]; ok {
+			return &check, nil
+		}
+	}
+
+	return nil, fmt.Errorf("check not found")
+}
 
 func main() {
 	log := slog.New(tint.NewHandler(os.Stdout, &tint.Options{
@@ -46,23 +127,23 @@ func main() {
 
 	log.Info("Config loaded")
 
+	app := NewApp(log)
+
 	log.Info("Loading plugins...")
 
-	plugins, err := LoadPluginsFromDir("./plugins")
+	plugins, err := LoadDynamicPluginsFromDir("./plugins")
 	if err != nil {
 		log.Error("Failed to load plugins", "error", err)
 
 		os.Exit(1)
 	}
 
-	checks := map[string]Check{}
 	for _, plugin := range plugins {
-		log.Info("Plugin loaded", "name", plugin.Info.Name)
+		err := app.AddPlugin(plugin)
+		if err != nil {
+			log.Error("Failed to setup plugin", "name", plugin.Name(), "error", err)
 
-		for _, check := range plugin.Info.Checks {
-			checks[check.Key] = check
-
-			log.Info("Check loaded", "name", check.Name, "key", check.Key)
+			os.Exit(1)
 		}
 	}
 
@@ -70,8 +151,8 @@ func main() {
 
 	for _, domain := range config.Domains {
 		for _, checkConfig := range domain.Checks {
-			check, ok := checks[checkConfig.Key]
-			if !ok {
+			check, _ := app.GetCheck(checkConfig.Key)
+			if check == nil {
 				log.Error("Check not found", "name", checkConfig.Key, "domain", domain.Domain)
 
 				os.Exit(1)
@@ -93,13 +174,18 @@ func main() {
 	jobs := []*Job{}
 	for _, domain := range config.Domains {
 		for _, checkConfig := range domain.Checks {
-			check := checks[checkConfig.Key]
+			check, err := app.GetCheck(checkConfig.Key)
+			if err != nil {
+				log.Error("Check not found", "name", checkConfig.Key, "domain", domain.Domain)
+
+				os.Exit(1)
+			}
 
 			log.Info("Adding job", "name", check.Name, "domain", domain.Domain, "args", checkConfig.Args)
 
 			jobs = append(jobs, &Job{
 				domain:      domain,
-				check:       checks[check.Key],
+				check:       *check,
 				checkConfig: checkConfig,
 				next:        time.Now(),
 			})

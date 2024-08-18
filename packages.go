@@ -16,6 +16,20 @@ import (
 var Symbols = interp.Exports{}
 
 func init() {
+	Symbols["uptime-gopher/uptime-gopher"] = map[string]reflect.Value{
+		"PluginCtx":   reflect.ValueOf((*PluginCtx)(nil)),
+		"Check":       reflect.ValueOf((*Check)(nil)),
+		"CheckResult": reflect.ValueOf((*CheckResult)(nil)),
+
+		"Severity":        reflect.ValueOf((*Severity)(nil)),
+		"SeverityDebug":   reflect.ValueOf(SeverityDebug),
+		"SeverityNotice":  reflect.ValueOf(SeverityNotice),
+		"SeverityWarning": reflect.ValueOf(SeverityWarning),
+		"SeverityError":   reflect.ValueOf(SeverityError),
+		"SeverityDown":    reflect.ValueOf(SeverityDown),
+		"SeverityFatal":   reflect.ValueOf(SeverityFatal),
+	}
+
 	Symbols["golang.org/x/text/unicode/bidi/bidi"] = map[string]reflect.Value{
 		// function, constant and variable definitions
 		"AL":               reflect.ValueOf(bidi.AL),
